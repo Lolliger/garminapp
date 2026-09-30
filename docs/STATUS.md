@@ -13,7 +13,8 @@
 - Garmin device list: Approach S62 = API level 3.0, 260x260 round, MIP 64 colors. (Menu2 needs 3.0.0 -> ok.)
 
 ## Still blocked / unverified
-- Network blocks tailscale.com and developers.cloudflare.com -> step 5 (tunnel guide) not written; no commands from memory.
+- Tailscale docs: WebFetch is blocked, but `curl -L` reaches tailscale.com; `docs/TUNNEL.md` is written from it (2026-09-30).
+- developers.cloudflare.com: not read; no Cloudflare guide. Garmin pages may also be readable via curl -> retry in phase 2.
 - Garmin pages backgrounding, web-requests, manifest, S62 device page: not read yet (404/nav-only via WebFetch);
   needed for phase 2 (temporal-event minimum, memory limits, manifest, HTTPS cert rules).
 - Does the S62 show ntfy action buttons via phone notification mirroring? Unknown; test with a real notification.

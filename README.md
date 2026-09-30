@@ -3,7 +3,7 @@
 Claude Code hook -> `hook_bridge.py` -> relay (FastAPI) -> watch / ntfy -> answer -> hook decision.
 Private use only. Structure: `relay/`, `hook/`, `watchapp/` (phase 2), `docs/`, `tests/`.
 
-**Status:** Phase 1 steps 1-4 done (relay, hook, settings, ntfy with signed links). Open: tunnel guide (5, blocked: docs unreachable), README polish (6), watch app (phase 2). See `docs/STATUS.md`.
+**Status:** Phase 1 done (relay, hook, settings, ntfy with signed links, Tailscale Funnel guide `docs/TUNNEL.md`); real-world tests below still pending. Next: watch app (phase 2). See `docs/STATUS.md`.
 
 ## Setup
 ```bash
@@ -50,3 +50,18 @@ Rotating `LINK_SECRET` invalidates all open links.
 
 Test without a phone: run the relay with the ntfy vars set, `curl` a `/request`, then `POST` one of the URLs from
 the ntfy payload (`python -m pytest tests/test_notify.py` covers this with a stub ntfy server).
+
+## Public URL
+See `docs/TUNNEL.md` (Tailscale Funnel). Put the resulting `https://...ts.net` URL into `PUBLIC_URL` in `.env`.
+
+## End-to-end tests for you (need a real setup)
+1. **Relay + Funnel:** follow `docs/TUNNEL.md`, `curl https://<host>/health` from mobile data.
+2. **ntfy on the phone:** install the ntfy app, subscribe to your `NTFY_TOPIC`. Run the relay, then
+   `echo '{"hook_event_name":"PermissionRequest","tool_name":"Bash","tool_input":{"command":"ls"},"cwd":"/tmp/demo"}' | python3 hook/hook_bridge.py`.
+   Expect a notification with buttons Erlauben / Ablehnen / Terminal; pressing one must print the decision in the terminal.
+3. **Watch mirroring:** check whether the S62 shows the mirrored notification and whether its buttons are usable
+   (unknown, depends on the phone OS notification mirroring). If not, the watch app (phase 2) is the answer path.
+4. **Claude Code (open questions from `docs/STATUS.md`):** install the hook (`hook/settings.example.json`) and trigger a
+   permission prompt. Note (a) whether the terminal dialog shows while the hook waits and whether answering there
+   cancels the hook, (b) whether an `AskUserQuestion` choice list triggers the hook at all (if not, it needs a
+   PreToolUse hook matching `AskUserQuestion`; the docs do not settle this for me, so test it).
