@@ -3,7 +3,7 @@
 Claude Code hook -> `hook_bridge.py` -> relay (FastAPI) -> watch / ntfy -> answer -> hook decision.
 Private use only. Structure: `relay/`, `hook/`, `watchapp/` (phase 2), `docs/`, `tests/`.
 
-**Status:** Phase 1 done (relay, hook, settings, ntfy with signed links, Tailscale Funnel guide `docs/TUNNEL.md`); real-world tests below still pending. Next: watch app (phase 2). See `docs/STATUS.md`.
+**Status:** Phase 1 done (relay, hook, settings, ntfy with signed links, Tailscale Funnel guide `docs/TUNNEL.md`); real-world tests below still pending. Phase 2 (watch app) written but not yet compiled: see `docs/WATCHAPP.md`. See `docs/STATUS.md`.
 
 ## Setup
 ```bash

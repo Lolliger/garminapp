@@ -22,3 +22,11 @@
 ## Needs a real Claude Code run
 - Does the terminal dialog show while the hook waits, and does answering there cancel the hook?
 - Whether AskUserQuestion (choice lists) goes through PermissionRequest or needs a PreToolUse hook.
+
+## Phase 2 (watch app, 2026-09-30)
+- Written in `watchapp/` (see `docs/WATCHAPP.md`), NOT compiled: compiler needs `approachs62` device data (SDK Manager, Garmin login).
+- Verified in Garmin docs: temporal event min 5 min, background 30 s / 64 KB on S62, requestApplicationWake API 2.3.0,
+  Phone-App-Message event 3.2.0 and Notifications API 5.1.0 not available on the S62 (API 3.0). Verdict: no background service.
+- Garmin docs are readable with `curl -L` (WebFetch gets 404 / SPA shells); real article text lives under
+  `/connect-iq/articles/...`, the full SDK docs ship inside the SDK zip.
+- Unverified: whether the S62 mirrors ntfy actions; touch vs Menu2 behavior on the device; makeWebRequest in background.

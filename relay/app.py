@@ -132,7 +132,8 @@ def create_app(token: Optional[str] = None, db_path: Optional[str] = None,
         return created
 
     @app.get("/pending", dependencies=[Depends(auth)])
-    def pending():
+    def pending(max_desc: int = Query(default=0, ge=0, le=2000)):
+        # max_desc>0 truncates the description (watch: small screen, small BLE responses).
         with db() as con:
             row = con.execute(
                 "SELECT * FROM requests WHERE status='pending' AND expires >= ?"
@@ -140,7 +141,12 @@ def create_app(token: Optional[str] = None, db_path: Optional[str] = None,
                 (time.time(),),
             ).fetchone()
         # Always 200 so the watch can tell "nothing open" from an error.
-        return {"pending": view(row) if row else None}
+        if not row:
+            return {"pending": None}
+        out = view(row)
+        if max_desc and len(out["description"]) > max_desc:
+            out["description"] = out["description"][: max_desc - 1] + "\u2026"
+        return {"pending": out}
 
     def apply_answer(req_id: str, body: Answer) -> dict:
         cur = fetch(req_id)

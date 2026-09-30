@@ -84,3 +84,11 @@ def test_wait_returns_on_answer_and_on_timeout(client):
     t0 = time.monotonic()
     got = client.get(f"/wait/{r['id']}?timeout=10", headers=H).json()
     assert got["status"] == "answered" and time.monotonic() - t0 < 3
+
+
+def test_pending_max_desc_truncates_for_watch(client):
+    new(client, description="x" * 500)
+    full = client.get("/pending", headers=H).json()["pending"]["description"]
+    short = client.get("/pending?max_desc=100", headers=H).json()["pending"]["description"]
+    assert len(full) == 500 and len(short) == 100 and short.endswith("\u2026")
+    assert client.get("/pending?max_desc=-1", headers=H).status_code == 422

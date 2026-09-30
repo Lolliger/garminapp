@@ -9,3 +9,6 @@ __pycache__/
 *.iq
 developer_key*
 bin/
+
+# watch app: generated from .env
+watchapp/source/Secrets.mc
