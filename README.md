@@ -26,8 +26,12 @@ curl -s -X POST -H "Authorization: Bearer $RELAY_TOKEN" -H 'Content-Type: applic
 ```
 
 ## Hook in Claude Code
-Copy `hook/settings.example.json` into `~/.claude/settings.json` (global) or `.claude/settings.json` (project),
-and replace the absolute path. Hooks from all levels are merged.
+Easiest: `python3 hook/install_hook.py` (Mac/Linux). It merges the two hook entries into `~/.claude/settings.json`,
+uses the absolute python and script paths, keeps your other settings, repairs a file that has several JSON objects
+in a row (error "Extra data") and writes a `.bak-...` backup first (`--dry-run` shows the result only).
+Manual alternative: copy `hook/settings.example.json` into `~/.claude/settings.json` (global) or `.claude/settings.json`
+(project) as ONE json object and replace the absolute path. Hooks from all levels are merged.
+The desktop app does not inherit your shell PATH (Claude Code docs), hence the absolute python path.
 
 Behavior: the hook sends every permission prompt to the relay with options *Erlauben / Ablehnen / Terminal*.
 Timeout (`HOOK_TIMEOUT`, default 120s), relay errors, bad token, or "Terminal" -> the hook prints nothing and
