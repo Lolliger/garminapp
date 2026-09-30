@@ -21,7 +21,7 @@
 
 ## Needs a real Claude Code run
 - Does the terminal dialog show while the hook waits, and does answering there cancel the hook?
-- Whether AskUserQuestion (choice lists) goes through PermissionRequest or needs a PreToolUse hook.
+- AskUserQuestion: per the hooks docs (read 2026-09-30) it needs a PreToolUse hook (matcher `AskUserQuestion`) returning allow + updatedInput{questions, answers}. Implemented in hook_bridge.py (35 tests). UNTESTED: that an interactive session accepts it (docs example is for `claude -p`).
 
 ## Phase 2 (watch app, 2026-09-30)
 - Written in `watchapp/` (see `docs/WATCHAPP.md`), NOT compiled: compiler needs `approachs62` device data (SDK Manager, Garmin login).

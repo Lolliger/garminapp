@@ -113,6 +113,67 @@ def test_garbage_stdin_and_unknown_event(relay):
     assert run_hook(relay, {"hook_event_name": "Stop"}).stdout == ""
 
 
+ASK = {"hook_event_name": "PreToolUse", "tool_name": "AskUserQuestion", "cwd": "/x/proj",
+       "tool_input": {"questions": [
+           {"question": "Which framework?", "header": "Framework", "multiSelect": False,
+            "options": [{"label": "React"}, {"label": "Vue"}]}]}}
+
+
+def answer_many(url, indexes):
+    def go():
+        for index in indexes:
+            for _ in range(100):
+                p = api(url, "GET", "/pending")["pending"]
+                if p:
+                    api(url, "POST", f"/answer/{p['id']}", {"index": index})
+                    break
+                time.sleep(0.2)
+    threading.Thread(target=go).start()
+
+
+def test_ask_user_question_answers_from_watch(relay):
+    answer_many(relay, [1])
+    r = run_hook(relay, ASK)
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)["hookSpecificOutput"]
+    assert out["hookEventName"] == "PreToolUse" and out["permissionDecision"] == "allow"
+    assert out["updatedInput"]["answers"] == {"Which framework?": "Vue"}
+    assert out["updatedInput"]["questions"] == ASK["tool_input"]["questions"]  # echoed back
+
+
+def test_ask_user_question_two_questions_in_order(relay):
+    two = {**ASK, "tool_input": {"questions": [
+        ASK["tool_input"]["questions"][0],
+        {"question": "Which db?", "header": "DB", "multiSelect": False,
+         "options": [{"label": "PG"}, {"label": "SQLite"}, {"label": "MySQL"}]}]}}
+    answer_many(relay, [0, 2])
+    r = run_hook(relay, two)
+    ans = json.loads(r.stdout)["hookSpecificOutput"]["updatedInput"]["answers"]
+    assert ans == {"Which framework?": "React", "Which db?": "MySQL"}
+
+
+def test_ask_user_question_terminal_choice_falls_back(relay):
+    answer_many(relay, [2])  # index 2 = "Terminal" (appended after React, Vue)
+    r = run_hook(relay, ASK)
+    assert (r.returncode, r.stdout) == (0, "")
+
+
+def test_ask_user_question_multiselect_and_odd_input_fall_back(relay):
+    multi = json.loads(json.dumps(ASK))
+    multi["tool_input"]["questions"][0]["multiSelect"] = True
+    assert run_hook(relay, multi).stdout == ""
+    long_label = json.loads(json.dumps(ASK))
+    long_label["tool_input"]["questions"][0]["options"][0]["label"] = "x" * 80
+    assert run_hook(relay, long_label).stdout == ""
+    assert run_hook(relay, {**ASK, "tool_input": {}}).stdout == ""
+    assert api(relay, "GET", "/pending")["pending"] is None  # nothing was sent to the watch
+
+
+def test_ask_user_question_timeout_falls_back(relay):
+    r = run_hook(relay, ASK, timeout="2")
+    assert (r.returncode, r.stdout) == (0, "")
+
+
 def test_notification_is_fire_and_forget(relay):
     t0 = time.monotonic()
     r = run_hook(relay, {"hook_event_name": "Notification", "message": "hi",

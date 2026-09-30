@@ -65,3 +65,14 @@ See `docs/TUNNEL.md` (Tailscale Funnel). Put the resulting `https://...ts.net` U
    permission prompt. Note (a) whether the terminal dialog shows while the hook waits and whether answering there
    cancels the hook, (b) whether an `AskUserQuestion` choice list triggers the hook at all (if not, it needs a
    PreToolUse hook matching `AskUserQuestion`; the docs do not settle this for me, so test it).
+
+## Choice questions (AskUserQuestion)
+Claude Code's multiple-choice questions do not go through `PermissionRequest`; the docs route them through a
+`PreToolUse` hook that answers with `permissionDecision: "allow"` plus `updatedInput` = the original `questions`
+and an `answers` object (question text -> chosen label). `settings.example.json` has that second entry (matcher
+`AskUserQuestion`). The hook asks each question on the watch in order, with the options plus *Terminal*.
+Falls back to the terminal for: *Terminal* chosen, timeout, multi-select questions, option labels over 60 chars,
+duplicate labels or more than 5 options. Free text ("Other") is not possible on the watch.
+Restart Claude Code after editing `settings.json` and check the entries with `/hooks`.
+The docs' example for this is written for `claude -p`; whether an *interactive* session accepts the answer the same way
+is untested, see the test steps in `docs/STATUS.md`.
