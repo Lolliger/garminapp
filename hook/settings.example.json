@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /ABSOLUTE/PATH/TO/garminapp/hook/hook_bridge.py",
+            "timeout": 140,
+            "statusMessage": "Warte auf Uhr/Handy..."
+          }
+        ]
+      }
+    ]
+  }
+}

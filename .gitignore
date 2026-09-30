@@ -1,0 +1,11 @@
+.env
+*.db
+*.db-journal
+__pycache__/
+.pytest_cache/
+.venv/
+# Connect IQ build output and developer key
+*.prg
+*.iq
+developer_key*
+bin/
