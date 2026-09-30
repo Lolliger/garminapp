@@ -34,21 +34,25 @@ class RelayClient {
         Communications.makeWebRequest(_base + "/answer/" + id, {"index" => index}, options, callback);
     }
 
-    //! Short German text for a response code (codes from the Communications docs, 401/409 from the relay)
+    //! Short German text for a response code (codes from the Communications docs, 401/409 from the relay).
+    //! The code is always appended so problems can be diagnosed from the watch screen.
     public static function describe(code as Number) as String {
+        var text = "Fehler";
         if (code == 401) {
-            return "Token falsch";
+            text = "Token falsch";
         } else if (code == 409) {
-            return "Schon beantwortet\noder abgelaufen";
-        } else if (code == -104 || code == -1) {
-            return "Handy nicht\nverbunden";
+            text = "Schon beantwortet\noder abgelaufen";
+        } else if (code == -104) {
+            text = "Keine Verbindung\nzum Handy";
+        } else if (code == -1) {
+            text = "BLE-Fehler";
         } else if (code == -1001) {
-            return "HTTPS noetig";
+            text = "HTTPS noetig";
         } else if (code == -300 || code == -2 || code == -3) {
-            return "Zeitueberschreitung";
+            text = "Zeitueberschreitung";
         } else if (code == -402) {
-            return "Antwort zu gross";
+            text = "Antwort zu gross";
         }
-        return "Fehler " + code.toString();
+        return text + "\n(Code " + code.toString() + ")";
     }
 }

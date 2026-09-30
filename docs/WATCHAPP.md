@@ -8,7 +8,7 @@ Enter/tap opens a Menu2 with the options, your choice is POSTed to `/answer/{id}
 - `Menu2` since API 3.0.0 (ok). `Communications.makeWebRequest` needs the `Communications` permission, works through the phone
   (Garmin Connect Mobile) and requires HTTPS (`-1001 SECURE_CONNECTION_REQUIRED`). POST default content type is url-encoded,
   so the app sets `Content-Type: application/json`.
-- Error codes used in the app: -104 BLE_CONNECTION_UNAVAILABLE (phone not connected), -300 request timeout, -402 response too large.
+- Error codes used in the app: -104 BLE_CONNECTION_UNAVAILABLE (no BLE connection), -1 BLE_ERROR (generic), -300 request timeout, -402 response too large. The code is shown on screen.
 
 ## Build and install (needs your machine: the compiler needs the device data from the SDK Manager, which needs a Garmin login)
 1. Install Java 11+, the Connect IQ SDK Manager, download the SDK and, in the *Devices* tab, **Approach S62**.
