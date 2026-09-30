@@ -9,11 +9,13 @@ import secrets
 import sqlite3
 import time
 import uuid
-from typing import Optional
+from typing import Callable, Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel, Field, model_validator
+
+from relay import notify as ntfy
 
 MAX_WAIT = 55  # stays below common proxy idle limits (Cloudflare: 100s)
 KEEP_SECONDS = 24 * 3600
@@ -59,12 +61,16 @@ class Answer(BaseModel):
         return self
 
 
-def create_app(token: Optional[str] = None, db_path: Optional[str] = None) -> FastAPI:
+def create_app(token: Optional[str] = None, db_path: Optional[str] = None,
+               ntfy_config: Optional[ntfy.NtfyConfig] = None,
+               publish: Optional[Callable[[ntfy.NtfyConfig, dict], None]] = None) -> FastAPI:
     load_dotenv()
     token = token or os.environ.get("RELAY_TOKEN", "")
     db_path = db_path or os.environ.get("RELAY_DB", "relay/relay.db")
     if len(token) < 16 or token == "change-me":
         raise RuntimeError("RELAY_TOKEN missing or too short (>=16 chars) - set it in .env")
+    ntfy_config = ntfy_config or ntfy.NtfyConfig.from_env(os.environ, token)
+    publish = publish or ntfy.publish
 
     def db() -> sqlite3.Connection:
         con = sqlite3.connect(db_path, timeout=10)
@@ -107,7 +113,7 @@ def create_app(token: Optional[str] = None, db_path: Optional[str] = None) -> Fa
         return {"ok": True}
 
     @app.post("/request", status_code=201, dependencies=[Depends(auth)])
-    def create_request(body: NewRequest):
+    def create_request(body: NewRequest, background: BackgroundTasks):
         now = time.time()
         req_id = uuid.uuid4().hex[:12]
         with db() as con:
@@ -118,7 +124,12 @@ def create_app(token: Optional[str] = None, db_path: Optional[str] = None) -> Fa
                 (req_id, now, now + body.timeout, body.title, body.description,
                  json.dumps(body.options)),
             )
-        return fetch(req_id)
+        created = fetch(req_id)
+        if ntfy_config:
+            exp = int(now + body.timeout)
+            background.add_task(publish, ntfy_config,
+                                ntfy.build_payload(ntfy_config, created, exp))
+        return created
 
     @app.get("/pending", dependencies=[Depends(auth)])
     def pending():
@@ -131,8 +142,7 @@ def create_app(token: Optional[str] = None, db_path: Optional[str] = None) -> Fa
         # Always 200 so the watch can tell "nothing open" from an error.
         return {"pending": view(row) if row else None}
 
-    @app.post("/answer/{req_id}", dependencies=[Depends(auth)])
-    def answer(req_id: str, body: Answer):
+    def apply_answer(req_id: str, body: Answer) -> dict:
         cur = fetch(req_id)
         options = cur["options"]
         if body.index is not None:
@@ -158,6 +168,20 @@ def create_app(token: Optional[str] = None, db_path: Optional[str] = None) -> Fa
         if n == 0:  # lost a race
             raise HTTPException(409, "already answered")
         return fetch(req_id)
+
+    @app.post("/answer/{req_id}", dependencies=[Depends(auth)])
+    def answer(req_id: str, body: Answer):
+        return apply_answer(req_id, body)
+
+    @app.post("/a/{req_id}/{index}")
+    def answer_by_link(req_id: str, index: int, exp: int, sig: str):
+        """Signed one-time link (ntfy buttons). No bearer token, the signature is the auth."""
+        # Same 403 for bad signature and expired link: no oracle for an attacker.
+        if (not ntfy_config or index < 0 or exp < time.time()
+                or not ntfy.verify(ntfy_config.link_secret, req_id, index, exp, sig)):
+            raise HTTPException(403, "invalid or expired link")
+        res = apply_answer(req_id, Answer(index=index))
+        return {"status": res["status"], "answer": res["answer"]}
 
     @app.get("/wait/{req_id}", dependencies=[Depends(auth)])
     async def wait(req_id: str, timeout: float = Query(default=25, ge=0, le=MAX_WAIT)):
